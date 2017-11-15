@@ -15,9 +15,8 @@ namespace SilverCard.Deluge
         [JsonProperty(PropertyName = "params")]
         public List<Object> Params { get; set; }
 
-        public WebRequestMessage()
-        {
-        }
+        [JsonIgnore]
+        public NullValueHandling NullValueHandling { get; set; }
 
         public WebRequestMessage(int requestId, String method, params object[] parameters)
         {
@@ -26,6 +25,8 @@ namespace SilverCard.Deluge
             Params = new List<Object>();
 
             if (parameters != null) Params.AddRange(parameters);
+
+            NullValueHandling = NullValueHandling.Include;
         }
     }
 }

@@ -30,9 +30,8 @@ namespace SilverCard.Deluge
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
             };
             _httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
-
-
-            _httpClient = new HttpClient(_httpClientHandler);
+            
+            _httpClient = new HttpClient(_httpClientHandler, true);
             _RequestId = 1;
 
             Url = url;
@@ -53,6 +52,19 @@ namespace SilverCard.Deluge
         {
             var result = await SendRequestAsync<Boolean>("auth.delete_session");
             if (!result) throw new DelugeWebClientException("Failed to delete session.", 0);
+        }
+
+        public Task<String> AddTorrentMagnetAsync(String uri, TorrentOptions options = null)
+        {
+            if (String.IsNullOrWhiteSpace(uri)) throw new ArgumentException(nameof(uri));         
+            var req = CreateRequest("core.add_torrent_magnet", uri, options);
+            req.NullValueHandling = NullValueHandling.Ignore;
+            return SendRequestAsync<String>(req);
+        }
+
+        public Task<Boolean> RemoveTorrentAsync(String torrentId, Boolean removeData = false)
+        {
+            return SendRequestAsync<Boolean>("core.remove_torrent", torrentId, removeData);
         }
 
         public async Task<List<TorrentStatus>> GetTorrentsStatusAsync()
@@ -82,19 +94,30 @@ namespace SilverCard.Deluge
 
         private async Task<T> SendRequestAsync<T>(WebRequestMessage webRequest) 
         {
-            var requestJson = JsonConvert.SerializeObject(webRequest);
-            StringContent content = new StringContent(requestJson);
-            content.Headers.ContentType = new MediaTypeWithQualityHeaderValue("application/json");
-            var responseMessage = await _httpClient.PostAsync(Url, content);
-            responseMessage.EnsureSuccessStatusCode();
+            var requestJson = JsonConvert.SerializeObject(webRequest, Formatting.None, new JsonSerializerSettings
+            {
+                NullValueHandling = webRequest.NullValueHandling
+            });
 
-            var rJson = await responseMessage.Content.ReadAsStringAsync();
-            var webResponse = JsonConvert.DeserializeObject<WebResponseMessage<T>>(rJson);
+            var responseJson = await PostJson(requestJson);
+            var webResponse = JsonConvert.DeserializeObject<WebResponseMessage<T>>(responseJson);
 
             if(webResponse.Error != null) throw new DelugeWebClientException(webResponse.Error.Message, webResponse.Error.Code);
             if (webResponse.ResponseId != webRequest.RequestId) throw new DelugeWebClientException("Desync.", 0);
 
             return webResponse.Result;
+        }
+
+        private async Task<String> PostJson(String json)
+        {
+            StringContent content = new StringContent(json);
+            content.Headers.ContentType = new MediaTypeWithQualityHeaderValue("application/json");
+
+            var responseMessage = await _httpClient.PostAsync(Url, content);
+            responseMessage.EnsureSuccessStatusCode();
+
+            var responseJson = await responseMessage.Content.ReadAsStringAsync();
+            return responseJson;
         }
 
         private WebRequestMessage CreateRequest(string method, params object[] parameters)
@@ -112,7 +135,6 @@ namespace SilverCard.Deluge
             {
                 if (disposing)
                 {
-                    if (_httpClientHandler != null) _httpClientHandler.Dispose();
                     if (_httpClient != null) _httpClient.Dispose();
                 }
 

@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading.Tasks;
 using System.IO;
+using System.Threading;
 
 namespace SilverCard.Deluge.Test
 {
@@ -54,6 +55,21 @@ namespace SilverCard.Deluge.Test
             {
                 await client.LoginAsync(DelugePassword);
                 var r = await client.GetTorrentsStatusAsync();
+                await client.LogoutAsync();
+            }
+
+        }
+
+        [TestMethod]
+        public async Task AddRemoveTorrentMagnet_Test()
+        {
+            using (DelugeWebClient client = new DelugeWebClient(DelugeUrl))
+            {
+                await client.LoginAsync(DelugePassword);
+                var torrentId = await client.AddTorrentMagnetAsync("magnet:?xt=urn:btih:30987c19cf0eae3cf47766f387c621fa78a58ab9&dn=debian-9.2.1-amd64-netinst.iso", new TorrentOptions() { MoveCompletedPath = "/etc/linux-iso" });
+                Thread.Sleep(1000);
+                var r2 = await client.RemoveTorrentAsync(torrentId, true);
+                Assert.IsTrue(r2);
                 await client.LogoutAsync();
             }
 
