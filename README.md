@@ -1,2 +1,2 @@
 # DelugeWebClient
-Deluge WebUI RCP Client in C# 
+Deluge WebUI RPC Client in C# 
