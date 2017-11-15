@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Authentication;
@@ -52,6 +53,14 @@ namespace SilverCard.Deluge
         {
             var result = await SendRequestAsync<Boolean>("auth.delete_session");
             if (!result) throw new DelugeWebClientException("Failed to delete session.", 0);
+        }
+
+        public async Task<List<TorrentStatus>> GetTorrentsStatusAsync()
+        {
+            var emptyFilterDict = new Dictionary<string, string>();
+            var keys = Utils.GetAllJsonPropertyFromType(typeof(TorrentStatus));
+            Dictionary<String, TorrentStatus> result = await SendRequestAsync<Dictionary<String, TorrentStatus>>("core.get_torrents_status", emptyFilterDict, keys);
+            return result.Values.ToList();
         }
 
         public async Task<SessionStatus> GetSessionStatusAsync()

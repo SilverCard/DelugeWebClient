@@ -47,5 +47,17 @@ namespace SilverCard.Deluge.Test
 
         }
 
+        [TestMethod]
+        public async Task GetTorrentsStatusAsync_Test()
+        {
+            using (DelugeWebClient client = new DelugeWebClient(DelugeUrl))
+            {
+                await client.LoginAsync(DelugePassword);
+                var r = await client.GetTorrentsStatusAsync();
+                await client.LogoutAsync();
+            }
+
+        }
+
     }
 }
