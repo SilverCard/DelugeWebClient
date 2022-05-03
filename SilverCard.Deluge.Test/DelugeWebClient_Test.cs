@@ -16,10 +16,10 @@ namespace SilverCard.Deluge.Test
         public DelugeWebClient_Test()
         {
             // Read deluge config from file.
-            // delugeurl.txt
+            // deluge-url.txt
             // https://192.168.88.10:8112/json
             // password
-            string[] l = File.ReadAllLines(@"D:\delugeurl.txt");
+            string[] l = File.ReadAllLines(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "deluge-url.txt"));
 
             DelugeUrl = l[0];
             DelugePassword = l[1];

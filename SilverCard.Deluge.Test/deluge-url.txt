@@ -1,0 +1,2 @@
+﻿http://localhost:8112/json
+deluge
