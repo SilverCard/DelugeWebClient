@@ -8,6 +8,7 @@ using System.Net.Http.Headers;
 using System.Security.Authentication;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("SilverCard.Deluge.Test")]
 
@@ -62,6 +63,17 @@ namespace SilverCard.Deluge
             return SendRequestAsync<String>(req);
         }
 
+        internal Task<String> AddTorrentFile(string file, TorrentOptions options = null)
+        {
+            if (String.IsNullOrWhiteSpace(file)) throw new ArgumentException(nameof(file));
+            if(!File.Exists(file)) throw new ArgumentException(nameof(file));
+            string filename = Path.GetFileName(file); 
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(file));
+            var req = CreateRequest("core.add_torrent_file", filename, base64, options);
+            req.NullValueHandling = NullValueHandling.Ignore;
+            return SendRequestAsync<String>(req);
+        }
+
         public Task<Boolean> RemoveTorrentAsync(String torrentId, Boolean removeData = false)
         {
             return SendRequestAsync<Boolean>("core.remove_torrent", torrentId, removeData);
@@ -74,6 +86,8 @@ namespace SilverCard.Deluge
             Dictionary<String, TorrentStatus> result = await SendRequestAsync<Dictionary<String, TorrentStatus>>("core.get_torrents_status", emptyFilterDict, keys);
             return result.Values.ToList();
         }
+
+        
 
         public async Task<SessionStatus> GetSessionStatusAsync()
         {

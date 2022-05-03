@@ -58,7 +58,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="test.torrent" />
+    <None Include="test.torrent">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SilverCard.Deluge\SilverCard.Deluge.csproj">
