@@ -91,5 +91,51 @@ namespace SilverCard.Deluge.Test
             }
 
         }
+
+        [TestMethod]
+        public async Task ListLabels_Test()
+        {
+            using (DelugeWebClient client = new DelugeWebClient(DelugeUrl))
+            {
+                await client.LoginAsync(DelugePassword);
+
+                var result = await client.GetLabels();
+                Assert.IsNotNull(result);
+
+                await client.LogoutAsync();
+            }
+        }
+
+            [TestMethod]
+        public async Task AddSetRemoveLabel_Test()
+        {
+            using (DelugeWebClient client = new DelugeWebClient(DelugeUrl))
+            {
+                await client.LoginAsync(DelugePassword);
+
+                bool? resultAdd = await client.AddLabel("testlabel");
+                Thread.Sleep(1000);
+                Assert.IsNull(resultAdd);
+
+                string torrentFile = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "test.torrent");
+                var torrentId = await client.AddTorrentFile(torrentFile, new TorrentOptions() { MoveCompletedPath = "/etc/linux-iso" });
+                Thread.Sleep(1000);
+
+                bool? resultSet = await client.SetLabel(torrentId, "testlabel");
+                Assert.IsNull(resultSet);
+
+                bool? resultUnset = await client.UnsetLabel(torrentId);
+                Assert.IsNull(resultUnset);
+
+                var r2 = await client.RemoveTorrentAsync(torrentId, true);
+                Assert.IsTrue(r2);
+
+                bool? resultRemove = await client.RemoveLabel("testlabel");
+                Assert.IsNull(resultRemove);
+
+                await client.LogoutAsync();
+            }
+
+        }
     }
 }
