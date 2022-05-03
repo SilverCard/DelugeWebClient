@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading.Tasks;
 using System.IO;
 using System.Threading;
+using System.Reflection;
 
 namespace SilverCard.Deluge.Test
 {
@@ -18,7 +19,7 @@ namespace SilverCard.Deluge.Test
             // delugeurl.txt
             // https://192.168.88.10:8112/json
             // password
-            string[] l = File.ReadAllLines(@"D:\Dev\SilverCard.Deluge\delugeurl.txt");
+            string[] l = File.ReadAllLines(@"D:\delugeurl.txt");
 
             DelugeUrl = l[0];
             DelugePassword = l[1];
@@ -75,5 +76,20 @@ namespace SilverCard.Deluge.Test
 
         }
 
+        [TestMethod]
+        public async Task AddRemoveTorrentByFile_Test()
+        {
+            using (DelugeWebClient client = new DelugeWebClient(DelugeUrl))
+            {
+                await client.LoginAsync(DelugePassword);
+                string torrentFile = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "test.torrent");
+                var torrentId = await client.AddTorrentFile(torrentFile, new TorrentOptions() { MoveCompletedPath = "/etc/linux-iso" });
+                Thread.Sleep(1000);
+                var r2 = await client.RemoveTorrentAsync(torrentId, true);
+                Assert.IsTrue(r2);
+                await client.LogoutAsync();
+            }
+
+        }
     }
 }
