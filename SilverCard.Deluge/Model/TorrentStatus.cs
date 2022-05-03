@@ -26,6 +26,9 @@ namespace SilverCard.Deluge
         [JsonProperty(PropertyName = "name")]
         public String Name { get; set; }
 
+        [JsonProperty(PropertyName = "label")]
+        public String Label { get; set; }
+
         public override string ToString()
         {
             return Name;

@@ -8,6 +8,7 @@ using System.Net.Http.Headers;
 using System.Security.Authentication;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("SilverCard.Deluge.Test")]
 
@@ -30,7 +31,7 @@ namespace SilverCard.Deluge
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
             };
             _httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
-            
+
             _httpClient = new HttpClient(_httpClientHandler, true);
             _RequestId = 1;
 
@@ -40,7 +41,7 @@ namespace SilverCard.Deluge
         public async Task LoginAsync(String password)
         {
             var result = await SendRequestAsync<Boolean>("auth.login", password);
-            if (!result) throw new AuthenticationException("Failed to login.");            
+            if (!result) throw new AuthenticationException("Failed to login.");
         }
 
         public Task<Boolean> AuthCheckSessionAsync()
@@ -56,10 +57,61 @@ namespace SilverCard.Deluge
 
         public Task<String> AddTorrentMagnetAsync(String uri, TorrentOptions options = null)
         {
-            if (String.IsNullOrWhiteSpace(uri)) throw new ArgumentException(nameof(uri));         
+            if (String.IsNullOrWhiteSpace(uri)) throw new ArgumentException(nameof(uri));
             var req = CreateRequest("core.add_torrent_magnet", uri, options);
             req.NullValueHandling = NullValueHandling.Ignore;
             return SendRequestAsync<String>(req);
+        }
+
+        public Task<String> AddTorrentFile(string file, TorrentOptions options = null)
+        {
+            if (String.IsNullOrWhiteSpace(file)) throw new ArgumentException(nameof(file));
+            if (!File.Exists(file)) throw new ArgumentException(nameof(file));
+            string filename = Path.GetFileName(file);
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(file));
+            var req = CreateRequest("core.add_torrent_file", filename, base64, options);
+            req.NullValueHandling = NullValueHandling.Ignore;
+            return SendRequestAsync<String>(req);
+        }
+
+        public Task<Boolean?> AddLabel(string label)
+        {
+            if (String.IsNullOrWhiteSpace(label)) throw new ArgumentException(nameof(label));
+            var req = CreateRequest("label.add", label);
+            req.NullValueHandling = NullValueHandling.Ignore;
+            return SendRequestAsync<Boolean?>(req);
+        }
+
+        public Task<bool?> RemoveLabel(string label)
+        {
+            if (String.IsNullOrWhiteSpace(label)) throw new ArgumentException(nameof(label));
+            var req = CreateRequest("label.remove", label);
+            req.NullValueHandling = NullValueHandling.Ignore;
+            return SendRequestAsync<Boolean?>(req);
+        }
+
+        public Task<bool?> SetLabel(string torrentId, string label)
+        {
+            if (String.IsNullOrWhiteSpace(torrentId)) throw new ArgumentException(nameof(torrentId));
+            if (String.IsNullOrWhiteSpace(label)) throw new ArgumentException(nameof(label));
+            var req = CreateRequest("label.set_torrent", torrentId, label);
+            req.NullValueHandling = NullValueHandling.Ignore;
+            return SendRequestAsync<Boolean?>(req);
+        }
+
+        public Task<bool?> UnsetLabel(string torrentId)
+        {
+            if (String.IsNullOrWhiteSpace(torrentId)) throw new ArgumentException(nameof(torrentId));
+            var req = CreateRequest("label.set_torrent", torrentId, null);
+            req.NullValueHandling = NullValueHandling.Include;
+            return SendRequestAsync<Boolean?>(req);
+        }
+
+        public Task<List<string>> GetLabels()
+        {
+            var req = CreateRequest("label.get_labels");
+            req.NullValueHandling = NullValueHandling.Ignore;
+            return SendRequestAsync<List<string>>(req);
         }
 
         public Task<Boolean> RemoveTorrentAsync(String torrentId, Boolean removeData = false)
@@ -75,6 +127,8 @@ namespace SilverCard.Deluge
             return result.Values.ToList();
         }
 
+
+
         public async Task<SessionStatus> GetSessionStatusAsync()
         {
             var keys = Utils.GetAllJsonPropertyFromType(typeof(SessionStatus));
@@ -82,17 +136,21 @@ namespace SilverCard.Deluge
             return result;
         }
 
+
+
         public Task<DelugeConfig> GetConfigAsync()
-        {        
+        {
             return SendRequestAsync<DelugeConfig>("core.get_config");
         }
 
-        private Task<T> SendRequestAsync<T>(string method, params object[] parameters) 
+
+
+        private Task<T> SendRequestAsync<T>(string method, params object[] parameters)
         {
             return SendRequestAsync<T>(CreateRequest(method, parameters));
         }
 
-        private async Task<T> SendRequestAsync<T>(WebRequestMessage webRequest) 
+        private async Task<T> SendRequestAsync<T>(WebRequestMessage webRequest)
         {
             var requestJson = JsonConvert.SerializeObject(webRequest, Formatting.None, new JsonSerializerSettings
             {
@@ -102,7 +160,7 @@ namespace SilverCard.Deluge
             var responseJson = await PostJson(requestJson);
             var webResponse = JsonConvert.DeserializeObject<WebResponseMessage<T>>(responseJson);
 
-            if(webResponse.Error != null) throw new DelugeWebClientException(webResponse.Error.Message, webResponse.Error.Code);
+            if (webResponse.Error != null) throw new DelugeWebClientException(webResponse.Error.Message, webResponse.Error.Code);
             if (webResponse.ResponseId != webRequest.RequestId) throw new DelugeWebClientException("Desync.", 0);
 
             return webResponse.Result;
